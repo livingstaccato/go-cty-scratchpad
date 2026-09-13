@@ -1,0 +1,59 @@
+> length(setproduct([for i in range(3) : ["a", "b"]]...))
+8
+> length(setproduct([for i in range(8) : [for j in range(256) : tostring(j)]]...))
+0
+> length(setproduct(concat([for i in range(7) : [for j in range(256) : tostring(j)]], [[for j in range(128) : tostring(j)]])...))
+
+Error: Error in function call
+
+  on <console-input> line 1:
+  (source code not available)
+
+Call to function "setproduct" failed: panic in function implementation:
+runtime error: makeslice: len out of range
+goroutine 1 [running]:
+runtime/debug.Stack()
+	runtime/debug/stack.go:26 +0x64
+github.com/zclconf/go-cty/cty/function.errorForPanic(...)
+	github.com/zclconf/go-cty@v1.18.0/cty/function/error.go:44
+github.com/zclconf/go-cty/cty/function.Function.Call.func2()
+	github.com/zclconf/go-cty@v1.18.0/cty/function/function.go:349 +0x84
+panic({0x1064e19a0?, 0x106cc39e0?})
+	runtime/panic.go:860 +0x12c
+github.com/zclconf/go-cty/cty/function/stdlib.init.func31({0x3de75751e800,
+0x8, 0x10627d700?}, {{0x106d2a1a8?, 0x3de75830d8e0?}})
+	github.com/zclconf/go-cty@v1.18.0/cty/function/stdlib/collection.go:1069
++0x358
+github.com/zclconf/go-cty/cty/function.Function.Call({0x106d2a0c8?},
+{0x3de75751e800, 0x8, 0x8})
+	github.com/zclconf/go-cty@v1.18.0/cty/function/function.go:353 +0x4ac
+github.com/hashicorp/hcl/v2/hclsyntax.(*FunctionCallExpr).Value(0x3de757caae10,
+0x3de7579a1a70)
+	github.com/hashicorp/hcl/v2@v2.20.1/hclsyntax/expression.go:528 +0x1310
+github.com/hashicorp/hcl/v2/hclsyntax.(*FunctionCallExpr).Value(0x3de757caaf00,
+0x3de7579a1a70)
+	github.com/hashicorp/hcl/v2@v2.20.1/hclsyntax/expression.go:493 +0xdac
+github.com/opentofu/opentofu/internal/lang.(*Scope).EvalExpr(0x3de757a36900,
+{0x106d29178, 0x107057aa0}, {0x106d2a3d8, 0x3de757caaf00}, {{0x106d2a090?,
+0x107057aa0?}})
+	github.com/opentofu/opentofu/internal/lang/eval.go:194 +0x168
+github.com/opentofu/opentofu/internal/repl.(*Session).handleEval(0x3de757d2b730,
+{0x3de75779c700?, 0x3de757e11368?})
+	github.com/opentofu/opentofu/internal/repl/session.go:61 +0x144
+github.com/opentofu/opentofu/internal/repl.(*Session).Handle(0x3de757e11730,
+{0x3de75779c700, 0x7f})
+	github.com/opentofu/opentofu/internal/repl/session.go:46 +0xe8
+github.com/opentofu/opentofu/internal/command.(*ConsoleCommand).modePiped(0x0?,
+0x3de7580d7730, {0x106d29738, 0x3de757902030})
+	github.com/opentofu/opentofu/internal/command/console.go:211 +0xd0
+github.com/opentofu/opentofu/internal/command.(*ConsoleCommand).Run(0x3de7578321a0,
+{0x3de757404320?, 0x106607ac0?, 0x0?})
+	github.com/opentofu/opentofu/internal/command/console.go:193 +0xebc
+github.com/mitchellh/cli.(*CLI).Run(0x3de7578a6640)
+	github.com/mitchellh/cli@v1.1.5/cli.go:262 +0x480
+main.realMain()
+	github.com/opentofu/opentofu/cmd/tofu/main.go:336 +0x16a4
+main.main()
+	github.com/opentofu/opentofu/cmd/tofu/main.go:50 +0x1c
+.
+

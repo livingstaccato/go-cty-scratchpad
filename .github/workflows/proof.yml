@@ -1,0 +1,50 @@
+name: proof
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # Check out run-proof.sh, the harnesses and the OpenTofu configurations.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Install the Go that produced the committed results.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache: false
+
+      # Install uv; run-proof.sh has it fetch Python 3.13 for pyvider-cty.
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+
+      # Install stock OpenTofu 1.12.6, without the wrapper that rewrites its output.
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "1.12.6"
+          tofu_wrapper: false
+
+      # Run every step and generate REPORT.md; exits non-zero if any check fails.
+      - name: Run the proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./run-proof.sh all
+
+      # Show the report on the run's summary page.
+      - name: Publish the report
+        if: always()
+        run: cat REPORT.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Attach the raw observations and the report to the run.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: proof
+          path: |
+            REPORT.md
+            results/

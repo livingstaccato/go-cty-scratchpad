@@ -1,0 +1,17 @@
+{
+	"Path": "github.com/zclconf/go-cty",
+	"Version": "v1.19.0",
+	"Replace": {
+		"Path": "github.com/livingstaccato/go-cty",
+		"Version": "v0.0.0-20260913001832-e7c9522b1c20",
+		"Time": "2026-09-13T00:18:32Z",
+		"Dir": "/Users/tim/.data/caches/go-mod/github.com/livingstaccato/go-cty@v0.0.0-20260913001832-e7c9522b1c20",
+		"GoMod": "/Users/tim/.data/caches/go-mod/cache/download/github.com/livingstaccato/go-cty/@v/v0.0.0-20260913001832-e7c9522b1c20.mod",
+		"GoVersion": "1.25",
+		"Sum": "h1:E8/N7MXuQMVzfUKidQbOAzwdiskvoHKmNjgwFYOxVO8=",
+		"GoModSum": "h1:12W89jGn3JCOIQi7infWr9m80rOkb5RNYJqXMZcN4c8="
+	},
+	"Dir": "/Users/tim/.data/caches/go-mod/github.com/livingstaccato/go-cty@v0.0.0-20260913001832-e7c9522b1c20",
+	"GoMod": "/Users/tim/.data/caches/go-mod/cache/download/github.com/livingstaccato/go-cty/@v/v0.0.0-20260913001832-e7c9522b1c20.mod",
+	"GoVersion": "1.25"
+}

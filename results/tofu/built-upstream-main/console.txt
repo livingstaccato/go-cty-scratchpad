@@ -1,0 +1,73 @@
+> length(setproduct([for i in range(3) : ["a", "b"]]...))
+8
+> length(setproduct([for i in range(8) : [for j in range(256) : tostring(j)]]...))
+0
+> length(setproduct(concat([for i in range(7) : [for j in range(256) : tostring(j)]], [[for j in range(128) : tostring(j)]])...))
+
+Error: Error in function call
+
+  on <console-input> line 1:
+  (source code not available)
+
+Call to function "setproduct" failed: panic in function implementation:
+runtime error: makeslice: len out of range
+goroutine 1 [running]:
+runtime/debug.Stack()
+	/Users/tim/.data/caches/go-mod/golang.org/toolchain@v0.0.1-go1.26.6.darwin-arm64/src/runtime/debug/stack.go:26
++0x64
+github.com/zclconf/go-cty/cty/function.errorForPanic(...)
+	/Users/tim/.data/caches/go-mod/github.com/zclconf/go-cty@v1.19.1-0.20260821180702-a918e1174fcf/cty/function/error.go:44
+github.com/zclconf/go-cty/cty/function.Function.Call.func2()
+	/Users/tim/.data/caches/go-mod/github.com/zclconf/go-cty@v1.19.1-0.20260821180702-a918e1174fcf/cty/function/function.go:349
++0x84
+panic({0x105dc95e0?, 0x1065ab710?})
+	/Users/tim/.data/caches/go-mod/golang.org/toolchain@v0.0.1-go1.26.6.darwin-arm64/src/runtime/panic.go:860
++0x12c
+github.com/zclconf/go-cty/cty/function/stdlib.init.func31({0x4b8883ea4500,
+0x8, 0x105b65260?}, {{0x106611ee8?, 0x4b88833b9dc0?}})
+	/Users/tim/.data/caches/go-mod/github.com/zclconf/go-cty@v1.19.1-0.20260821180702-a918e1174fcf/cty/function/stdlib/collection.go:1074
++0x358
+github.com/zclconf/go-cty/cty/function.Function.Call({0x106611e08?},
+{0x4b8883ea4500, 0x8, 0x8})
+	/Users/tim/.data/caches/go-mod/github.com/zclconf/go-cty@v1.19.1-0.20260821180702-a918e1174fcf/cty/function/function.go:353
++0x4ac
+github.com/hashicorp/hcl/v2/hclsyntax.(*FunctionCallExpr).Value(0x4b8883caae10,
+0x4b8883bc8618)
+	/Users/tim/.data/caches/go-mod/github.com/opentofu/hcl/v2@v2.20.2-0.20251021132045-587d123c2828/hclsyntax/expression.go:528
++0x1310
+github.com/hashicorp/hcl/v2/hclsyntax.(*FunctionCallExpr).Value(0x4b8883caaf00,
+0x4b8883bc8618)
+	/Users/tim/.data/caches/go-mod/github.com/opentofu/hcl/v2@v2.20.2-0.20251021132045-587d123c2828/hclsyntax/expression.go:493
++0xdac
+github.com/opentofu/opentofu/internal/lang.(*Scope).EvalExpr(0x4b8883660ea0,
+{0x106610eb8, 0x10693fb20}, {0x106612118, 0x4b8883caaf00}, {{0x106611dd0?,
+0x10693fb20?}})
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/internal/lang/eval.go:194
++0x168
+github.com/opentofu/opentofu/internal/repl.(*Session).handleEval(0x4b8883b1f730,
+{0x4b8883640700?, 0x4b8883b8f368?})
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/internal/repl/session.go:61
++0x144
+github.com/opentofu/opentofu/internal/repl.(*Session).Handle(0x4b8883b8f730,
+{0x4b8883640700, 0x7f})
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/internal/repl/session.go:46
++0xe8
+github.com/opentofu/opentofu/internal/command.(*ConsoleCommand).modePiped(0x0?,
+0x4b8883f27730, {0x106611478, 0x4b88838a0038})
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/internal/command/console.go:211
++0xd0
+github.com/opentofu/opentofu/internal/command.(*ConsoleCommand).Run(0x4b88837ee1a0,
+{0x4b88832aa320?, 0x105eef680?, 0x0?})
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/internal/command/console.go:193
++0xebc
+github.com/mitchellh/cli.(*CLI).Run(0x4b8883a6e280)
+	/Users/tim/.data/caches/go-mod/github.com/mitchellh/cli@v1.1.5/cli.go:262
++0x480
+main.realMain()
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/cmd/tofu/main.go:336
++0x16a4
+main.main()
+	/Volumes/data/pyv/go-cty-scratchpad/build/tofu-upstream-main/cmd/tofu/main.go:50
++0x1c
+.
+

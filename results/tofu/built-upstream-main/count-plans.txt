@@ -1,0 +1,30 @@
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+failed: Error: Invalid count argument
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+failed: Error: Invalid count argument
+succeeded: Plan: 1 to add, 0 to change, 0 to destroy.
+failed: Error: Invalid count argument
+failed: Error: Invalid count argument

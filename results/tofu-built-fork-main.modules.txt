@@ -1,0 +1,5 @@
+/Volumes/data/pyv/go-cty-scratchpad/build/tofu-fork-main/tofu: go1.26.6
+	dep	github.com/zclconf/go-cty	v1.18.0
+	=>	github.com/livingstaccato/go-cty	v0.0.0-20260913020742-d8ae3d7fbbe2	h1:P323qMe9oveIcAl8PXWNsYWHavSKF0+KNHuaqMDuZJY=
+	dep	github.com/zclconf/go-cty-debug	v0.0.0-20240509010212-0d6042c53940	h1:4r45xpDWB6ZMSMNJFMOjqrGHynW3DIBuR2H9j0ug+Mo=
+	dep	github.com/zclconf/go-cty-yaml	v1.2.0	h1:GDyL4+e/Qe/S0B7YaecMLbVvAR/Mp21CXMOSiCTOi1M=

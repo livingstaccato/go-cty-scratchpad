@@ -1,0 +1,25 @@
+[
+  {
+    "head": "f2d0e3507ffc320c914dd31561416055ec8fc58d",
+    "parents": [
+      "e7c9522b1c2014ccbf6c2502a50f4c83a9b26c3c",
+      "73874ea6e84a04c14d69377954cb84c96c9d7be1"
+    ],
+    "second_parent_on_base": true
+  },
+  {
+    "head": "e4591f58f99bb30511b360e373776160e71c3554",
+    "parents": [
+      "781f24c6bf5e768fa45971d8ab217ad4a120df06",
+      "280524c33d9156c5562f58488485626cc86a4ef1"
+    ],
+    "second_parent_on_base": true
+  },
+  {
+    "head": "ef2c1cac99f51a4ad01d9f94d5bec410efd6ea81",
+    "parents": [
+      "a918e1174fcf2a25b7a222e7e78b00ea40ace26c"
+    ],
+    "second_parent_on_base": false
+  }
+]

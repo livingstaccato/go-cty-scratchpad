@@ -1,0 +1,2 @@
+OpenTofu v1.12.6-dev
+on darwin_arm64

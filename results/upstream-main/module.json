@@ -1,0 +1,10 @@
+{
+	"Path": "github.com/zclconf/go-cty",
+	"Version": "v1.19.1-0.20260821180702-a918e1174fcf",
+	"Time": "2026-08-21T18:07:02Z",
+	"Dir": "/Users/tim/.data/caches/go-mod/github.com/zclconf/go-cty@v1.19.1-0.20260821180702-a918e1174fcf",
+	"GoMod": "/Users/tim/.data/caches/go-mod/cache/download/github.com/zclconf/go-cty/@v/v1.19.1-0.20260821180702-a918e1174fcf.mod",
+	"GoVersion": "1.25",
+	"Sum": "h1:w3R6RP4NipXHPQjI09QaR/AmBAON0lHNDGcHmay4rJQ=",
+	"GoModSum": "h1:12W89jGn3JCOIQi7infWr9m80rOkb5RNYJqXMZcN4c8="
+}

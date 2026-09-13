@@ -1,0 +1,20 @@
+> length(setproduct([for i in range(3) : ["a", "b"]]...))
+8
+> length(setproduct([for i in range(8) : [for j in range(256) : tostring(j)]]...))
+
+Error: Error in function call
+
+  on <console-input> line 1:
+  (source code not available)
+
+Call to function "setproduct" failed: result would have too many elements.
+
+> length(setproduct(concat([for i in range(7) : [for j in range(256) : tostring(j)]], [[for j in range(128) : tostring(j)]])...))
+
+Error: Error in function call
+
+  on <console-input> line 1:
+  (source code not available)
+
+Call to function "setproduct" failed: result would have too many elements.
+
