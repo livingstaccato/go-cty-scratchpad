@@ -9,7 +9,9 @@ go-cty.
 
 **The verdict is [`REPORT.md`](REPORT.md).** Every number and PASS/FAIL in it is
 computed from the raw observations committed in [`results/`](results/), and
-`./run-proof.sh all` regenerates both from nothing.
+`./run-proof.sh all` regenerates both from nothing. [`report.html`](report.html)
+is the same evidence as a standalone page — open it locally, or download it from
+GitHub's raw view.
 
 ## The three defects
 

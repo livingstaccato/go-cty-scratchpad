@@ -1,0 +1,739 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0}img{max-width:100%}</style></head><body>
+<title>go-cty Correctness Proof</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  :root {
+    --ground: #F6F7FA;
+    --surface: #FFFFFF;
+    --ink: #161B27;
+    --muted: #586174;
+    --rule: #DADFE8;
+    --rule-strong: #C3CAD7;
+    --accent: #3346B0;
+    --bug: #B0234F;
+    --bug-soft: #FBEAF0;
+    --fix: #1F7A52;
+    --fix-soft: #E3F3EA;
+    --code-bg: #EEF0F5;
+    --py-soft: #E6E9F7;
+    --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Public Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F131B;
+      --surface: #161B25;
+      --ink: #E5E8EF;
+      --muted: #969FB2;
+      --rule: #283042;
+      --rule-strong: #394257;
+      --accent: #9AA8FF;
+      --bug: #F2739C;
+      --bug-soft: #331623;
+      --fix: #5BC996;
+      --fix-soft: #132B20;
+      --code-bg: #1D2330;
+      --py-soft: #1B2140;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F131B;
+    --surface: #161B25;
+    --ink: #E5E8EF;
+    --muted: #969FB2;
+    --rule: #283042;
+    --rule-strong: #394257;
+    --accent: #9AA8FF;
+    --bug: #F2739C;
+    --bug-soft: #331623;
+    --fix: #5BC996;
+    --fix-soft: #132B20;
+    --code-bg: #1D2330;
+    --py-soft: #1B2140;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    padding-inline: 20px;
+    padding-block: 0 72px;
+  }
+  .page { max-width: 1040px; margin: 0 auto; display: grid; gap: 64px; }
+
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); }
+  h1 { font-size: clamp(2.1rem, 5vw, 3.1rem); line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.5rem, 3vw, 1.9rem); line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+  h3 { font-size: 1.12rem; line-height: 1.3; font-weight: 600; }
+  p { margin: 0; max-width: 68ch; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+  :not(pre) > code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .stack { display: grid; gap: 16px; }
+  .stack-lg { display: grid; gap: 28px; }
+
+  /* Header */
+  header { padding-block: 56px 0; display: grid; gap: 22px; }
+  .lede { font-size: 1.12rem; color: var(--muted); max-width: 62ch; }
+  .verdict {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px;
+    padding-block: 18px; border-block: 1px solid var(--rule-strong);
+  }
+  .verdict-total { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .verdict-total .zero { color: var(--fix); }
+  .areas { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .areas li {
+    font-size: 0.84rem; padding: 4px 10px; border-radius: 999px;
+    background: var(--fix-soft); color: var(--fix); font-variant-numeric: tabular-nums;
+  }
+  .areas li strong { font-weight: 600; }
+
+  /* Diff pairs: − upstream, + fork */
+  .findings { display: grid; gap: 14px; }
+  .finding { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 10px 24px; align-items: start; padding-block: 16px; border-top: 1px solid var(--rule); }
+  .finding:first-child { border-top: 0; }
+  .finding h3 a { color: var(--ink); text-decoration: none; }
+  .finding h3 a:hover { text-decoration: underline; }
+  .pair { display: grid; gap: 4px; }
+  .row {
+    display: grid; grid-template-columns: 22px 9.5rem 1fr; gap: 10px; align-items: baseline;
+    padding: 7px 12px; border-radius: 6px; font-size: 0.94rem;
+  }
+  .row .glyph { font-family: var(--font-mono); font-weight: 500; }
+  .row .who { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+  .row.minus { background: var(--bug-soft); }
+  .row.minus .glyph { color: var(--bug); }
+  .row.plus { background: var(--fix-soft); }
+  .row.plus .glyph { color: var(--fix); }
+  .row.py { background: var(--py-soft); }
+  .row.py .glyph { color: var(--accent); }
+  .glyph-py { color: var(--accent); font-family: var(--font-mono); font-weight: 600; }
+  th.py, td.py { background: var(--py-soft); }
+
+  /* Sections */
+  section { display: grid; gap: 22px; scroll-margin-top: 24px; }
+  .section-head { display: grid; gap: 8px; padding-top: 28px; border-top: 2px solid var(--ink); }
+  .claim-method { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 32px; }
+  .claim-method p { font-size: 0.97rem; }
+  .label { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+  caption { text-align: left; padding: 12px 14px 0; font-weight: 600; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { font-size: 0.76rem; font-family: var(--font-mono); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; }
+  td.code { font-family: var(--font-mono); font-size: 0.82rem; }
+  .wrong { color: var(--bug); font-weight: 600; }
+  .right { color: var(--fix); font-weight: 600; }
+  .tag { display: inline-block; font-family: var(--font-mono); font-size: 0.74rem; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+  .tag.bug { background: var(--bug-soft); color: var(--bug); }
+  .tag.fix { background: var(--fix-soft); color: var(--fix); }
+  .tag.neutral { background: var(--code-bg); color: var(--muted); }
+  .note { font-size: 0.9rem; color: var(--muted); max-width: 72ch; }
+
+  /* Plan strips: one cell per real `tofu plan` run, in run order */
+  .figure { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px; display: grid; gap: 16px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 0.85rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  .swatch.ok { background: var(--fix); }
+  .swatch.bad { background: var(--bug); }
+  .build { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  .build:first-of-type { border-top: 0; padding-top: 0; }
+  .build-name { font-weight: 600; font-size: 0.93rem; }
+  .build-name .mono { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+  .strip-row { display: grid; grid-template-columns: 7.5rem minmax(0, 520px) auto; gap: 12px 16px; align-items: center; }
+  .strip-label { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+  .strip { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; max-width: 520px; }
+  .strip i { display: block; aspect-ratio: 1; max-width: 100%; border-radius: 2px; }
+  .strip i.ok { background: var(--fix); }
+  .strip i.bad { background: var(--bug); }
+  .strip-count { font-size: 0.8rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  /* Memory bars */
+  .bars { display: grid; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 9.5rem 1fr 4.5rem; gap: 12px; align-items: center; font-size: 0.88rem; }
+  .bar-track { height: 14px; background: var(--code-bg); border-radius: 3px; overflow: hidden; }
+  .bar { height: 100%; border-radius: 3px; }
+  .bar.before { background: var(--bug); width: 100%; }
+  .bar.after { background: var(--fix); width: calc(288 / 504 * 100%); }
+  .bar-value { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 0.82rem; }
+
+  pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.55; }
+
+  ul.plain { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 72ch; }
+  details { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+  summary { cursor: pointer; padding: 14px 18px; font-weight: 600; }
+  details[open] summary { border-bottom: 1px solid var(--rule); }
+  .checks { padding: 16px 18px 18px; display: grid; gap: 26px; }
+  .checks .area-head { display: flex; align-items: baseline; gap: 10px; }
+  .checks .area-head h3 { font-size: 0.98rem; }
+  .checks .area-head .count { font-family: var(--font-mono); font-size: 0.76rem; color: var(--fix); background: var(--fix-soft); padding: 1px 8px; border-radius: 999px; }
+  .grid-table td.chk { font-size: 0.88rem; }
+  .grid-table td.result { text-align: center; width: 5.5rem; white-space: nowrap; }
+  .grid-table .emoji { font-size: 1rem; }
+  .grid-table .pass-word { font-family: var(--font-mono); font-size: 0.72rem; color: var(--fix); letter-spacing: 0.03em; margin-left: 4px; }
+  .grid-table td.ev { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+  .grid-table code { font-size: 0.94em; }
+
+  footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 18px; }
+
+  @media (max-width: 720px) {
+    .finding { grid-template-columns: 1fr; }
+    .claim-method { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 18px 1fr; }
+    .row .who { grid-column: 2; }
+    .row .what { grid-column: 2; }
+    .strip-row { grid-template-columns: 1fr; gap: 6px; }
+    .bar-row { grid-template-columns: 1fr 4rem; }
+    .bar-row .bar-label { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="page">
+
+<header>
+  <span class="eyebrow"><a href="https://github.com/livingstaccato/go-cty-scratchpad">livingstaccato/go-cty-scratchpad</a> · report 2026-09-13 11:42 PDT · <a href="https://github.com/livingstaccato/go-cty-scratchpad/actions/runs/34775490247">verified again on a clean GitHub Actions runner</a></span>
+  <h1>go-cty Correctness Proof</h1>
+  <p class="lede">Three defects in go-cty, shown to exist in both the v1.19.0 release and current upstream <code>main</code>, and shown to be fixed on the fork's <code>main</code> — in the library, in go-cty's own test suite, and in real OpenTofu built from source. pyvider-cty, the Python port, runs the same cases alongside, at its <code>v0.6.1</code> release. All three are now filed upstream: <a href="https://github.com/zclconf/go-cty/issues/226">#226</a>, <a href="https://github.com/zclconf/go-cty/issues/227">#227</a>, <a href="https://github.com/zclconf/go-cty/issues/228">#228</a>.</p>
+  <div class="verdict">
+    <span class="verdict-total">96 checks · <span class="zero">0 failed</span></span>
+    <ul class="areas" aria-label="Checks by area">
+      <li><strong>Fork branches</strong> 3/3</li>
+      <li><strong>Value.Equals</strong> 29/29</li>
+      <li><strong>SetProductFunc</strong> 27/27</li>
+      <li><strong>Refinement bounds</strong> 16/16</li>
+      <li><strong>Upstream test suites</strong> 8/8</li>
+      <li><strong>pyvider-cty</strong> 13/13</li>
+    </ul>
+  </div>
+</header>
+
+<section aria-labelledby="glance">
+  <div class="stack">
+    <span class="eyebrow" id="glance">The three findings</span>
+    <p class="muted">Each set reads like a patch: <span class="wrong">−</span> is what upstream go-cty does, <span class="right">+</span> is what the fork does with the fix applied, and <span class="glyph-py">py</span> is pyvider-cty on the same cases.</p>
+  </div>
+  <div class="findings">
+    <div class="finding">
+      <h3><a href="#equals"><code>Value.Equals</code> is order-dependent</a></h3>
+      <div class="pair">
+        <div class="row minus"><span class="glyph">−</span><span class="who">upstream</span><span class="what">An object with an unknown attribute and a differing attribute compares as <code>false</code> or unknown at random: 9,240 of 32,796 pairs flip between runs.</span></div>
+        <div class="row plus"><span class="glyph">+</span><span class="who">fork</span><span class="what">A definite difference wins: always <code>false</code>, 0 pairs inconsistent, every answer the most precise possible.</span></div>
+        <div class="row py"><span class="glyph">py</span><span class="who">pyvider-cty</span><span class="what">Already behaves like the fix: the same answer, with the same mark, as the fork on all 32,796 pairs.</span></div>
+      </div>
+    </div>
+    <div class="finding">
+      <h3><a href="#setproduct"><code>SetProductFunc</code> overflows</a></h3>
+      <div class="pair">
+        <div class="row minus"><span class="glyph">−</span><span class="who">upstream</span><span class="what"><code>setproduct</code> of 8 lists of 256 strings returns length <strong>0</strong>; 2<sup>63</sup> elements panics.</span></div>
+        <div class="row plus"><span class="glyph">+</span><span class="who">fork</span><span class="what">Both return <code>result would have too many elements</code>; 20,000 random calls unchanged; 504 MB → 288 MB.</span></div>
+        <div class="row py"><span class="glyph">py</span><span class="who">pyvider-cty</span><span class="what">Python integers cannot overflow; any product over 1,000,000 elements is refused. The 25 products both languages build contain identical elements.</span></div>
+      </div>
+    </div>
+    <div class="finding">
+      <h3><a href="#bounds">Empty number ranges accepted</a></h3>
+      <div class="pair">
+        <div class="row minus"><span class="glyph">−</span><span class="who">upstream</span><span class="what"><code>3 &lt; x &lt; 3</code> is accepted — an unknown number unequal to every number — while <code>3 &lt; x ≤ 3</code> panics.</span></div>
+        <div class="row plus"><span class="glyph">+</span><span class="who">fork</span><span class="what">Accepts exactly the ranges that contain a number, across all 200 bound combinations.</span></div>
+        <div class="row py"><span class="glyph">py</span><span class="who">pyvider-cty</span><span class="what">The builder refuses exactly what the fork refuses. <span class="tag fix">fixed, shipped in 0.6.1</span> Its msgpack decoder now refuses all 3 empty ranges from the wire.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="how">
+  <div class="section-head">
+    <span class="eyebrow">Method</span>
+    <h2 id="how">How the evidence was produced</h2>
+  </div>
+  <div class="claim-method">
+    <p><span class="label">Seven builds, fetched, not copied</span>Every go-cty build is downloaded through <code>proxy.golang.org</code> with its checksum verified — upstream v1.19.0, upstream <code>main</code>, each fork fix alone, and the fork's <code>main</code>, where all three are merged. pyvider-cty is installed from GitHub at its <code>v0.6.1</code> tag. Branches resolve to the commit GitHub has, so no result can come from an unpushed local edit.</p>
+    <p><span class="label">Two harnesses, one independent judge</span>A Go harness is built against each go-cty version, and a Python harness runs the same cases against pyvider-cty; both only record what they observe. A separate judge, which imports neither library, recomputes the right answers from first principles and grades every build.</p>
+    <p><span class="label">Tests that fail first</span>Each fix's own regression test runs 20 times on unfixed upstream source (must fail every time) and 20 times on the fix branch (must pass every time). go-cty's full suite and <code>go vet</code> run on every branch, including the fork's <code>main</code>.</p>
+    <p><span class="label">Real OpenTofu, built twice</span>OpenTofu v1.12.6 is built from the same source against upstream <code>main</code> and against the fork's <code>main</code> — go-cty is the only difference — then planned 30 times per configuration, alongside a stock install.</p>
+  </div>
+</section>
+
+<section id="equals" aria-labelledby="equals-h">
+  <div class="section-head">
+    <span class="eyebrow">Finding · cty/value_ops.go · <a href="https://github.com/zclconf/go-cty/issues/226">go-cty upstream issue 226</a></span>
+    <h2 id="equals-h"><code>Value.Equals</code> gives different answers for the same objects and maps</h2>
+  </div>
+  <div class="claim-method">
+    <p><span class="label">Claim</span>When an object or map holds an unknown member <em>and</em> a member that definitely differs, upstream answers <code>cty.False</code> or an unknown bool depending on Go's randomized map iteration order. The fix lets the definite difference win.</p>
+    <p><span class="label">Method</span>Every pair of flat operands with 1–4 positions, each position <code>p</code>, <code>q</code> or unknown, for objects, maps, lists and tuples — 29,520 pairs plus 3,276 with a <code>sensitive</code> mark — each compared 200 times. Ground truth substitutes <code>p</code>, <code>q</code> and a fresh <code>r</code> for every unknown, in every combination.</p>
+  </div>
+
+  <div class="figure" role="group" aria-labelledby="strip-caption">
+    <div class="stack" style="gap:6px">
+      <h3 id="strip-caption">Thirty <code>tofu plan</code> runs of one unchanging configuration</h3>
+      <p class="note"><code>{ a = &lt;unknown until apply&gt;, b = "z" }</code> compared with <code>{ a = "x", b = "y" }</code>. Attribute <code>b</code> differs, so the correct plan value is <code>false</code>; the <code>count</code> configuration uses that comparison as <code>count = cond ? 1 : 0</code>. Each cell is one run, in the order they ran.</p>
+    </div>
+    <div class="legend">
+      <span><i class="swatch ok"></i>correct: <code>false</code> / plan succeeded</span>
+      <span><i class="swatch bad"></i>wrong: <code>(known after apply)</code> / <code>Invalid count argument</code></span>
+    </div>
+    <div id="strips"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Library results per build</caption>
+      <thead><tr><th>Build</th><th class="num">Pairs</th><th>Inconsistent on repeat (object / map / list / tuple)</th><th class="num">Unsound</th><th class="num">Less precise than possible</th></tr></thead>
+      <tbody>
+        <tr><td class="code">upstream-v1.19.0</td><td class="num">32,796</td><td class="wrong">4,620 / 4,620 / 0 / 0</td><td class="num">0</td><td class="num wrong">9,240</td></tr>
+        <tr><td class="code">upstream-main</td><td class="num">32,796</td><td class="wrong">4,620 / 4,620 / 0 / 0</td><td class="num">0</td><td class="num wrong">9,240</td></tr>
+        <tr><td class="code">fork-equals</td><td class="num">32,796</td><td class="right">0 / 0 / 0 / 0</td><td class="num">0</td><td class="num right">0</td></tr>
+        <tr><td class="code">fork-setproduct <span class="tag neutral">control</span></td><td class="num">32,796</td><td class="wrong">4,620 / 4,620 / 0 / 0</td><td class="num">0</td><td class="num wrong">9,240</td></tr>
+        <tr><td class="code">fork-bounds <span class="tag neutral">control</span></td><td class="num">32,796</td><td class="wrong">4,620 / 4,620 / 0 / 0</td><td class="num">0</td><td class="num wrong">9,240</td></tr>
+        <tr><td class="code">fork-main</td><td class="num">32,796</td><td class="right">0 / 0 / 0 / 0</td><td class="num">0</td><td class="num right">0</td></tr>
+        <tr><td class="code py">pyvider-cty</td><td class="num py">32,796</td><td class="right py">0 / 0 / 0 / 0</td><td class="num py">0</td><td class="num right py">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">The two control builds carry the other fixes but not this one, and still show the bug — so the change in behaviour belongs to this fix alone. Every answer the fix gives, marks included, is one upstream also gives; it only stops giving the other. pyvider-cty gives the same answer as <code>fork-main</code> on every one of the 32,796 pairs, lists and tuples included, and marks the answer whenever the fork does.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Examples — every distinct answer seen in 200 comparisons</caption>
+      <thead><tr><th>Operands (<code>U</code> = unknown)</th><th>Possible results</th><th>Most precise</th><th>upstream-main</th><th>fork-equals</th><th class="py">pyvider-cty</th></tr></thead>
+      <tbody>
+        <tr><td class="code">object Uq vs pp</td><td>false</td><td>false</td><td><span class="tag bug">false / unknown</span></td><td><span class="tag fix">false</span></td><td class="py"><span class="tag fix">false</span></td></tr>
+        <tr><td class="code">map Uq vs pp</td><td>false</td><td>false</td><td><span class="tag bug">false / unknown</span></td><td><span class="tag fix">false</span></td><td class="py"><span class="tag fix">false</span></td></tr>
+        <tr><td class="code">object UUUq vs pppp</td><td>false</td><td>false</td><td><span class="tag bug">false / unknown</span></td><td><span class="tag fix">false</span></td><td class="py"><span class="tag fix">false</span></td></tr>
+        <tr><td class="code">object qU vs pp, k0 marked</td><td>false</td><td>false</td><td><span class="tag bug">false / unknown</span></td><td><span class="tag fix">false</span></td><td class="py"><span class="tag fix">false</span></td></tr>
+        <tr><td class="code">object Up vs pp</td><td>false, true</td><td>unknown</td><td><span class="tag neutral">unknown</span></td><td><span class="tag neutral">unknown</span></td><td class="py"><span class="tag neutral">unknown</span></td></tr>
+        <tr><td class="code">list Uq vs pp</td><td>false</td><td>false</td><td><span class="tag neutral">unknown</span></td><td><span class="tag neutral">unknown</span></td><td class="py"><span class="tag neutral">unknown</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">The list row is deliberate: lists and tuples are visited in index order, so an earlier unknown always wins. That is consistent, just less precise, and the fix leaves it exactly as upstream has it.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Regression test <code>TestValueEqualsUnknownAndDifference</code>, <code>go test -count=20</code></caption>
+      <thead><tr><th>Source</th><th class="num">Passed</th><th class="num">Failed</th><th>Failing subtests</th></tr></thead>
+      <tbody>
+        <tr><td>upstream <code>main</code> + only the fix's test file</td><td class="num">0</td><td class="num wrong">20</td><td class="code">map_with_an_unknown_element_and_a_different_element<br>object_with_an_unknown_attribute_and_a_different_attribute</td></tr>
+        <tr><td>fix branch</td><td class="num right">20</td><td class="num">0</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="setproduct" aria-labelledby="setproduct-h">
+  <div class="section-head">
+    <span class="eyebrow">Finding · cty/function/stdlib/collection.go · <a href="https://github.com/zclconf/go-cty/issues/227">go-cty upstream issue 227</a></span>
+    <h2 id="setproduct-h"><code>SetProductFunc</code> overflows its length</h2>
+  </div>
+  <div class="claim-method">
+    <p><span class="label">Claim</span>The result length is the product of the argument lengths, multiplied without an overflow check. At 2<sup>64</sup> it wraps to exactly zero and returns an empty collection; at 2<sup>63</sup> it wraps negative and the allocation panics. The fix returns an error, and builds each tuple from one reused buffer.</p>
+    <p><span class="label">Method</span>K lists of N elements, with the correct length computed as an exact big integer. Separately, 20,000 random calls — lists, sets and tuples of mixed types, unknown and refined collections, <code>DynamicVal</code>, nulls, marks — run on every build and compared byte for byte.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Result length per build — 22 shapes, upstream v1.19.0 always matches <code>main</code>, and <code>fork-setproduct</code> always matches <code>fork-main</code></caption>
+      <thead><tr><th>K × N</th><th class="num">Correct length</th><th>Fits <code>int</code></th><th>upstream v1.19.0 &amp; main</th><th>fork-setproduct &amp; main</th><th class="py">pyvider-cty</th></tr></thead>
+      <tbody>
+        <tr><td class="code">4×2</td><td class="num">16</td><td>yes</td><td>16</td><td>16</td><td class="py">16</td></tr>
+        <tr><td class="code">8×2</td><td class="num">256</td><td>yes</td><td>256</td><td>256</td><td class="py">256</td></tr>
+        <tr><td class="code">12×2</td><td class="num">4,096</td><td>yes</td><td>4,096</td><td>4,096</td><td class="py">4,096</td></tr>
+        <tr><td class="code">16×2</td><td class="num">65,536</td><td>yes</td><td>65,536</td><td>65,536</td><td class="py">65,536</td></tr>
+        <tr><td class="code">4×3</td><td class="num">81</td><td>yes</td><td>81</td><td>81</td><td class="py">81</td></tr>
+        <tr><td class="code">8×3</td><td class="num">6,561</td><td>yes</td><td>6,561</td><td>6,561</td><td class="py">6,561</td></tr>
+        <tr><td class="code">4×10</td><td class="num">10,000</td><td>yes</td><td>10,000</td><td>10,000</td><td class="py">10,000</td></tr>
+        <tr><td class="code">48×2</td><td class="num">281,474,976,710,656</td><td>yes</td><td>panic: makeslice: len out of range</td><td>panic: makeslice: len out of range</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">56×2</td><td class="num">72,057,594,037,927,936</td><td>yes</td><td>panic: makeslice: len out of range</td><td>panic: makeslice: len out of range</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">62×2</td><td class="num">4,611,686,018,427,387,904</td><td>yes</td><td>panic: makeslice: len out of range</td><td>panic: makeslice: len out of range</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">63×2</td><td class="num">9,223,372,036,854,775,808</td><td>no</td><td class="wrong">panic: makeslice: len out of range</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">64×2</td><td class="num">18,446,744,073,709,551,616</td><td>no</td><td class="wrong">length 0 (wrong)</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">65×2</td><td class="num">36,893,488,147,419,103,232</td><td>no</td><td class="wrong">length 0 (wrong)</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">21×8</td><td class="num">9,223,372,036,854,775,808</td><td>no</td><td class="wrong">panic: makeslice: len out of range</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">22×8</td><td class="num">73,786,976,294,838,206,464</td><td>no</td><td class="wrong">length 0 (wrong)</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">16×16</td><td class="num">18,446,744,073,709,551,616</td><td>no</td><td class="wrong">length 0 (wrong)</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">32×4</td><td class="num">18,446,744,073,709,551,616</td><td>no</td><td class="wrong">length 0 (wrong)</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">8×256</td><td class="num">18,446,744,073,709,551,616</td><td>no</td><td class="wrong">length 0 (wrong)</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">7×256 + 1×128</td><td class="num">9,223,372,036,854,775,808</td><td>no</td><td class="wrong">panic: makeslice: len out of range</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">41×3</td><td class="num">36,472,996,377,170,786,403</td><td>no</td><td class="wrong">panic: makeslice: len out of range</td><td class="right">error: too many elements</td><td class="right py">error: over 1,000,000 limit</td></tr>
+        <tr><td class="code">64×2 + 1×0</td><td class="num">0</td><td>yes</td><td>length 0</td><td>length 0</td><td class="py">length 0</td></tr>
+        <tr><td class="code">8×256 + 1×0</td><td class="num">0</td><td>yes</td><td>length 0</td><td>length 0</td><td class="py">length 0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Rows 48×2 to 62×2 fit in an <code>int</code> but not in any computer's memory, so every Go build — fixed or not — fails the allocation with a recovered panic; the fix covers only lengths an <code>int</code> cannot hold, so these are unstyled. From 63×2 down, unfixed go-cty either silently returns the wrong length or panics uncontrolled; the fix turns every one into a clean <code>result would have too many elements</code> error. All 25 shapes whose result fits in memory are byte-identical between upstream and the fix, and the 20,000 random calls (Go-only; they replay Go's PCG stream byte for byte) agree on all six Go builds.</p>
+  <p class="note">pyvider-cty multiplies with Python integers, which cannot overflow, and refuses any product over 1,000,000 elements before building it — a deliberate divergence recorded in its parity tracker. It answers every row no machine can build with a clean error instead of an allocation panic. Its 25 buildable products have the same elements, in the same order, as go-cty's; since Go's <code>%#v</code> rendering has no Python equivalent, the comparison uses a language-neutral digest of the elements.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>In real OpenTofu — <code>tofu console</code></caption>
+      <thead><tr><th>Expression</th><th class="num">Correct</th><th>stock</th><th>built, upstream <code>main</code></th><th>built, fork <code>main</code></th></tr></thead>
+      <tbody>
+        <tr><td class="code">length(setproduct(3 × ["a","b"]))</td><td class="num">8</td><td>8</td><td>8</td><td>8</td></tr>
+        <tr><td class="code">length(setproduct(8 × [256 strings]))</td><td class="num">2<sup>64</sup></td><td class="wrong">0</td><td class="wrong">0</td><td class="right">result would have too many elements</td></tr>
+        <tr><td class="code">length(setproduct(7 × [256], 1 × [128]))</td><td class="num">2<sup>63</sup></td><td class="wrong">panic in function implementation</td><td class="wrong">panic in function implementation</td><td class="right">result would have too many elements</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="figure">
+    <h3>Memory allocated for 6×10 (1,000,000 tuples), median of 5 runs</h3>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label mono">upstream</span><div class="bar-track"><div class="bar before"></div></div><span class="bar-value">504 MB</span></div>
+      <div class="bar-row"><span class="bar-label mono">fork-setproduct / fork-main</span><div class="bar-track"><div class="bar after"></div></div><span class="bar-value">288 MB</span></div>
+    </div>
+    <p class="note">All five runs were identical on every build. The million-tuple result has the same SHA-256 (<code>5fcd3ea48168f967…</code>) on all six Go builds; all 20,000 random calls produced byte-identical results on all six. pyvider-cty builds the same million tuples, element for element (digest <code>c757c8dbcf24c0e7…</code> in both languages). Its memory is not measured, and it is not in the random-call replay: both are Go-specific.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Regression test <code>TestSetproductTooManyElements</code>, <code>go test -count=20</code></caption>
+      <thead><tr><th>Source</th><th class="num">Passed</th><th class="num">Failed</th><th>Failing subtests</th></tr></thead>
+      <tbody>
+        <tr><td>upstream <code>main</code> + only the fix's test file</td><td class="num">0</td><td class="num wrong">20</td><td class="code">63_two-element_lists<br>64_two-element_lists</td></tr>
+        <tr><td>fix branch</td><td class="num right">20</td><td class="num">0</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="bounds" aria-labelledby="bounds-h">
+  <div class="section-head">
+    <span class="eyebrow">Finding · cty/unknown_refinement.go · <a href="https://github.com/zclconf/go-cty/issues/228">go-cty upstream issue 228</a></span>
+    <h2 id="bounds-h">Number refinement accepts an empty range when both bounds are exclusive</h2>
+  </div>
+  <div class="claim-method">
+    <p><span class="label">Claim</span><code>assertConsistentBounds</code> chooses its comparison by whether the two inclusivity flags are <em>equal</em>, instead of whether both are inclusive. So <code>3 &lt; x &lt; 3</code> is accepted while the equally empty <code>3 &lt; x ≤ 3</code> panics.</p>
+    <p><span class="label">Method</span>Lower and upper bounds from {−1, 0, 0.5, 1, 10<sup>38</sup>+1}, every inclusive/exclusive combination, applied lower-first and upper-first — 200 refinements per build. Whether each range contains a number is decided with exact rational comparison.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>200 refinements per build</caption>
+      <thead><tr><th>Build</th><th class="num">Accepted</th><th class="num">Accepted but empty</th><th class="num">Refused but non-empty</th></tr></thead>
+      <tbody>
+        <tr><td class="code">upstream-v1.19.0</td><td class="num">100</td><td class="num wrong">10</td><td class="num">0</td></tr>
+        <tr><td class="code">upstream-main</td><td class="num">100</td><td class="num wrong">10</td><td class="num">0</td></tr>
+        <tr><td class="code">fork-equals <span class="tag neutral">control</span></td><td class="num">100</td><td class="num wrong">10</td><td class="num">0</td></tr>
+        <tr><td class="code">fork-setproduct <span class="tag neutral">control</span></td><td class="num">100</td><td class="num wrong">10</td><td class="num">0</td></tr>
+        <tr><td class="code">fork-bounds</td><td class="num">90</td><td class="num right">0</td><td class="num">0</td></tr>
+        <tr><td class="code">fork-main</td><td class="num">90</td><td class="num right">0</td><td class="num">0</td></tr>
+        <tr><td class="code py">pyvider-cty</td><td class="num py">90</td><td class="num right py">0</td><td class="num py">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">The ten wrong acceptances are exactly <code>v &lt; x &lt; v</code> for each of the five values, applied in both orders — no other shape. Every non-empty range builds identically on the fix, and every range both refuse keeps upstream's panic message. pyvider-cty's refinement builder accepts and refuses exactly what <code>fork-bounds</code> does on all 200; it raises <code>CtyRefinementError</code> where Go panics.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>What upstream's accepted <code>3 &lt; x &lt; 3</code> means</caption>
+      <thead><tr><th>Probe on the accepted value</th><th>upstream-main</th></tr></thead>
+      <tbody>
+        <tr><td class="code">Range().Includes(2.5) · Includes(3) · Includes(3.5)</td><td class="code">cty.False · cty.False · cty.False</td></tr>
+        <tr><td class="code">Equals(2.5) · Equals(3) · Equals(3.5)</td><td class="code wrong">cty.False · cty.False · cty.False</td></tr>
+        <tr><td class="code">msgpack.Marshal</td><td class="code">c7090c82039203c2049203c2</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">An unknown number that is definitely not equal to any number. On <code>fork-bounds</code> the refinement panics instead: <code>number lower bound cty.NumberIntVal(3) is greater than upper bound cty.NumberIntVal(3)</code>. pyvider-cty refuses it too: <code>CtyRefinementError: number lower bound 3 excludes upper bound 3</code>.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Decoding refinements from the wire — <code>msgpack.Unmarshal</code> / <code>cty_from_msgpack</code></caption>
+      <thead><tr><th>Payload</th><th>Bytes</th><th>Contains a number</th><th>upstream-main</th><th>fork-bounds</th><th class="py">pyvider-cty</th></tr></thead>
+      <tbody>
+        <tr><td class="code">3 ≤ x ≤ 4</td><td class="code">c7090c82039203c3049204c3</td><td>yes</td><td><span class="tag neutral">value</span></td><td><span class="tag neutral">value</span></td><td class="py"><span class="tag neutral">value</span></td></tr>
+        <tr><td class="code">3 ≤ x ≤ 3</td><td class="code">c7090c82039203c3049203c3</td><td>yes</td><td><span class="tag neutral">value</span></td><td><span class="tag neutral">value</span></td><td class="py"><span class="tag neutral">value</span></td></tr>
+        <tr><td class="code">3 &lt; x &lt; 3</td><td class="code">c7090c82039203c2049203c2</td><td>no</td><td><span class="tag neutral">value</span></td><td><span class="tag bug">panic</span></td><td class="py"><span class="tag fix">refused</span></td></tr>
+        <tr><td class="code">3 &lt; x ≤ 3</td><td class="code">c7090c82039203c2049203c3</td><td>no</td><td><span class="tag bug">panic</span></td><td><span class="tag bug">panic</span></td><td class="py"><span class="tag fix">refused</span></td></tr>
+        <tr><td class="code">4 ≤ x ≤ 3</td><td class="code">c7090c82039204c3049203c3</td><td>no</td><td><span class="tag bug">panic</span></td><td><span class="tag bug">panic</span></td><td class="py"><span class="tag fix">refused</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note"><strong>Not part of the fix, recorded because the fix changes one row.</strong> go-cty's msgpack decoder applies wire bounds through the same builder without recovering the panic, so an inconsistent payload from another process already crashes the decoding process. Upstream already does this for <code>3 &lt; x ≤ 3</code> and <code>4 ≤ x ≤ 3</code>; with the fix, <code>3 &lt; x &lt; 3</code> behaves the same way. The hand-encoded payload is byte-identical to upstream's own <code>msgpack.Marshal</code> of the value above.</p>
+  <p class="note"><span class="tag fix">pyvider-cty gap, found by the previous run — shipped in 0.6.1</span> pyvider-cty <code>v0.6.1</code> refuses all 3 payloads whose range holds no number with <code>DeserializationError</code> — no panic and no empty range kept — and decodes the 2 that hold one.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Regression test <code>TestValueRefine</code>, <code>go test -count=20</code></caption>
+      <thead><tr><th>Source</th><th class="num">Passed</th><th class="num">Failed</th><th>Failing subtests</th></tr></thead>
+      <tbody>
+        <tr><td>upstream <code>main</code> + only the fix's test file</td><td class="num">0</td><td class="num wrong">20</td><td class="code">unknown_number_cannot_have_equal_bounds_when_both_are_exclusive</td></tr>
+        <tr><td>fix branch</td><td class="num right">20</td><td class="num">0</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="branches-h">
+  <div class="section-head">
+    <span class="eyebrow">Provenance</span>
+    <h2 id="branches-h">What was tested is what is proposed</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <caption>Fork pull requests, read from GitHub at run time</caption>
+      <thead><tr><th>PR</th><th>Branch → base</th><th>PR head</th><th>Commit tested</th><th>Relation</th><th>Full suite</th><th><code>go vet</code></th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://github.com/livingstaccato/go-cty/pull/1">#1</a></td><td class="code">fix/equals-unknown-and-difference → main</td><td class="code">ef2c1cac99f5</td><td class="code right">ef2c1cac99f5</td><td>head</td><td>9 packages pass</td><td>clean</td></tr>
+        <tr><td><a href="https://github.com/livingstaccato/go-cty/pull/2">#2</a></td><td class="code">fix/refinement-exclusive-equal-bounds → main</td><td class="code">e4591f58f99b</td><td class="code right">781f24c6bf5e</td><td>head merges base into it</td><td>9 packages pass</td><td>clean</td></tr>
+        <tr><td><a href="https://github.com/livingstaccato/go-cty/pull/3">#3</a></td><td class="code">fix/setproduct-length-overflow → main</td><td class="code">f2d0e3507ffc</td><td class="code right">e7c9522b1c20</td><td>head merges base into it</td><td>9 packages pass</td><td>clean</td></tr>
+        <tr><td>—</td><td class="code">all three merged → main</td><td>—</td><td class="code right">d8ae3d7fbbe2</td><td>(no PR)</td><td>9 packages pass</td><td>clean</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">A PR head that only merges its base branch into the tested commit still counts: its first parent is the tested commit and its second is already on the base, so the fix is measured on its own, without whatever merged before it. Each fix is also filed upstream as an issue linking its merged PR: <a href="https://github.com/zclconf/go-cty/issues/226">#226</a>, <a href="https://github.com/zclconf/go-cty/issues/227">#227</a>, <a href="https://github.com/zclconf/go-cty/issues/228">#228</a>. Pull requests are disabled on <code>zclconf/go-cty</code>, so an issue is as far as this can go upstream.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Modules actually built (Go 1.27.1; OpenTofu builds used its pinned Go 1.26.6)</caption>
+      <thead><tr><th>Build</th><th>Module</th><th><code>go.sum</code> hash</th></tr></thead>
+      <tbody>
+        <tr><td class="code">upstream-v1.19.0</td><td class="code">github.com/zclconf/go-cty@v1.19.0</td><td class="code">h1:IV8WdqYZc2c5rLX9bEoLNXKojBAp0MZPBHMIrCoa/s4=</td></tr>
+        <tr><td class="code">upstream-main</td><td class="code">github.com/zclconf/go-cty@v1.19.1-0.20260821180702-a918e1174fcf</td><td class="code">h1:w3R6RP4NipXHPQjI09QaR/AmBAON0lHNDGcHmay4rJQ=</td></tr>
+        <tr><td class="code">fork-equals</td><td class="code">github.com/livingstaccato/go-cty@v0.0.0-20260913001827-ef2c1cac99f5</td><td class="code">h1:TztGooEpm21caZomxhWiVxbpmFu/UooONlnlnRCAqis=</td></tr>
+        <tr><td class="code">fork-setproduct</td><td class="code">github.com/livingstaccato/go-cty@v0.0.0-20260913001832-e7c9522b1c20</td><td class="code">h1:E8/N7MXuQMVzfUKidQbOAzwdiskvoHKmNjgwFYOxVO8=</td></tr>
+        <tr><td class="code">fork-bounds</td><td class="code">github.com/livingstaccato/go-cty@v0.0.0-20260913001857-781f24c6bf5e</td><td class="code">h1:ZaXDdMfKd+vVaK7HqYvk0q5Bm5j3i4XKJqOv2JeI/MM=</td></tr>
+        <tr><td class="code">fork-main</td><td class="code">github.com/livingstaccato/go-cty@v0.0.0-20260913020742-d8ae3d7fbbe2</td><td class="code">h1:P323qMe9oveIcAl8PXWNsYWHavSKF0+KNHuaqMDuZJY=</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>pyvider-cty as installed (<code>uv pip install</code> from GitHub, Python 3.13.3)</caption>
+      <thead><tr><th>Build</th><th>Tag</th><th>Commit on GitHub</th><th>Commit installed (<code>direct_url.json</code>)</th><th>Package</th></tr></thead>
+      <tbody>
+        <tr><td class="code">pyvider-cty</td><td class="code">v0.6.1</td><td class="code">858fef516aa9</td><td class="code right">858fef516aa9</td><td class="code">pyvider-cty 0.6.1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="limits-h">
+  <div class="section-head">
+    <span class="eyebrow">Scope</span>
+    <h2 id="limits-h">What this does not show</h2>
+  </div>
+  <ul class="plain">
+    <li><strong>Equals</strong> — operands are flat, with string members drawn from {p, q, unknown}. Nested containers, other element types and refined unknowns go through the same loops but are not enumerated. The OpenTofu runs cover one real configuration, not Terraform itself.</li>
+    <li><strong>SetProduct</strong> — the fix adds no size limit below the range of <code>int</code>. Products that fit in an <code>int</code> but not in memory still fail as before, and are deliberately not run.</li>
+    <li><strong>Refinement bounds</strong> — the decoder panic on inconsistent wire payloads is pre-existing upstream behaviour; the fix extends it to one more payload.</li>
+    <li><strong>pyvider-cty</strong> is tested at its <code>v0.6.1</code> release, installed from GitHub, as a library only. It has no OpenTofu column, since OpenTofu evaluates expressions with go-cty, not pyvider-cty. It is not part of the random-call replay or the allocation measurements, which are specific to Go. Its own test suite is not run here.</li>
+    <li>All three fixes are filed upstream as issues, since pull requests are disabled on <code>zclconf/go-cty</code>: <a href="https://github.com/zclconf/go-cty/issues/226">#226</a>, <a href="https://github.com/zclconf/go-cty/issues/227">#227</a>, <a href="https://github.com/zclconf/go-cty/issues/228">#228</a>. Nothing further has been proposed; the maintainer fixes accepted issues directly rather than through PRs.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="repro-h">
+  <div class="section-head">
+    <span class="eyebrow">Reproduce</span>
+    <h2 id="repro-h">Regenerating every number</h2>
+  </div>
+  <pre>git clone https://github.com/livingstaccato/go-cty-scratchpad.git
+cd go-cty-scratchpad
+./run-proof.sh all    # or one step: prs | variants | pyvider | unit-tests | tofu-stock | tofu-built | report</pre>
+  <p class="note">The repository is public with <code>results/</code> and this run's <code>REPORT.md</code> already committed, so nothing above is required just to read the numbers. <code>.github/workflows/proof.yml</code> runs the same thing on a fresh Ubuntu runner on demand — <a href="https://github.com/livingstaccato/go-cty-scratchpad/actions/runs/34775490247">this run</a> confirmed 96/96 there too, independent of the machine that produced the committed results.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Path</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td class="code">proof/harness/main.go</td><td>The only program that calls go-cty. Built once per build; records observations, holds no expectations.</td></tr>
+        <tr><td class="code">proof/pyharness/harness.py</td><td>The same cases against pyvider-cty, in the same output shapes. Holds no expectations.</td></tr>
+        <tr><td class="code">proof/judge/main.go</td><td>Standard library only. Recomputes ground truth, grades each build, writes <code>REPORT.md</code>.</td></tr>
+        <tr><td class="code">tofu/equals, tofu/count</td><td>OpenTofu configurations, planned repeatedly and never applied.</td></tr>
+        <tr><td class="code">results/</td><td>Raw observations from the run that produced this report, committed.</td></tr>
+        <tr><td class="code">.github/workflows/proof.yml</td><td>Manual workflow that runs the whole proof on a clean GitHub-hosted runner.</td></tr>
+        <tr><td class="code">build/, work/</td><td>Not committed: every go-cty build, the fork's clone, OpenTofu's source and builds, and the source trees the test suites run in — all regenerated by <code>run-proof.sh</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <details>
+    <summary>All 96 checks</summary>
+    <div class="checks" id="checks"></div>
+  </details>
+</section>
+
+<footer>Generated from <code>results/</code> of the 2026-09-13 proof run, and confirmed again on a clean GitHub Actions runner. Every figure on this page appears in the judge's <a href="https://github.com/livingstaccato/go-cty-scratchpad/blob/main/REPORT.md">REPORT.md</a> for that run.</footer>
+
+</div>
+
+<script>
+  // Outcome of each real `tofu plan`, in run order, from results/tofu/*/ of the committed run.
+  // F = false, U = (known after apply); S = plan succeeded, X = Invalid count argument.
+  const builds = [
+    { name: "OpenTofu v1.12.6, stock", detail: "as installed on PATH · go-cty v1.18.0",
+      objects: "FFFUUUFFUUUUFFFUUFFUFFUUFUFUFU", maps: "FUFUUUUUFUUUUUUUFUFFUUUUUUFUUF", count: "SXSXXXXSXSXXXXXXXXXXXSSXXXXXXS" },
+    { name: "OpenTofu v1.12.6, built from source", detail: "go-cty upstream main a918e11",
+      objects: "UUUFFUUUUUUUFUFUUUFUUUUFUFFFFU", maps: "UUUUUUUUUUFUUUUUUUUUUFUUFFUUUU", count: "XXXXSXXXXSSXXSSSXXXXXXXSXSXSXX" },
+    { name: "OpenTofu v1.12.6, built from source", detail: "fork main d8ae3d7",
+      objects: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", maps: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", count: "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSS" },
+  ];
+  const rows = [
+    { key: "objects", label: "objects ==", ok: "F", okText: "false" },
+    { key: "maps", label: "maps ==", ok: "F", okText: "false" },
+    { key: "count", label: "count plan", ok: "S", okText: "succeeded" },
+  ];
+  const strips = document.getElementById("strips");
+  for (const b of builds) {
+    const el = document.createElement("div");
+    el.className = "build";
+    const title = document.createElement("div");
+    title.className = "build-name";
+    title.innerHTML = `${b.name} <span class="mono">${b.detail}</span>`;
+    el.append(title);
+    for (const r of rows) {
+      const runs = b[r.key];
+      const good = [...runs].filter(c => c === r.ok).length;
+      const row = document.createElement("div");
+      row.className = "strip-row";
+      const cells = [...runs].map((c, i) =>
+        `<i class="${c === r.ok ? "ok" : "bad"}" title="run ${i + 1}: ${c === r.ok ? r.okText : "wrong"}"></i>`).join("");
+      row.innerHTML = `<span class="strip-label">${r.label}</span>
+        <div class="strip" role="img" aria-label="${r.label}: ${good} of 30 runs correct">${cells}</div>
+        <span class="strip-count">${good}/30 correct</span>`;
+      el.append(row);
+    }
+    strips.append(el);
+  }
+
+  // Every row of REPORT.md's "Every check" table, grouped by its literal Area
+  // column, in the order the judge printed them. [check, evidence]; all PASS.
+  const checks = {
+    "Fork branches": [
+      ["PR #1 head is the tested commit, or only merges its base into it", "PR ef2c1cac99f5, tested ef2c1cac99f5, head"],
+      ["PR #2 head is the tested commit, or only merges its base into it", "PR e4591f58f99b, tested 781f24c6bf5e, head merges base into it"],
+      ["PR #3 head is the tested commit, or only merges its base into it", "PR f2d0e3507ffc, tested e7c9522b1c20, head merges base into it"],
+    ],
+    "Value.Equals": [
+      ...["upstream-v1.19.0", "upstream-main", "fork-equals", "fork-setproduct", "fork-bounds", "fork-main"]
+        .map(v => [`judge's ground truth matches harness's (\`${v}\`)`, "0 mismatches"]),
+      ["bug is real: `upstream-v1.19.0` answers objects inconsistently", "4620 object pairs, 4620 map pairs gave two different answers"],
+      ["bug is real: `upstream-v1.19.0` answers maps inconsistently", "4620 map pairs"],
+      ["lists and tuples were already consistent on `upstream-v1.19.0`", "0 list, 0 tuple"],
+      ["bug is real: `upstream-main` answers objects inconsistently", "4620 object pairs, 4620 map pairs gave two different answers"],
+      ["bug is real: `upstream-main` answers maps inconsistently", "4620 map pairs"],
+      ["lists and tuples were already consistent on `upstream-main`", "0 list, 0 tuple"],
+      ...["fork-equals", "fork-main"].flatMap(v => [
+        [`fixed: \`${v}\` gives one answer for every pair`, "0 pairs with more than one answer"],
+        [`fixed: \`${v}\` never gives an unsound answer`, "0 unsound"],
+        [`fixed: \`${v}\` object/map answers are the most precise possible`, "0 less precise"],
+        [`\`${v}\` never answers anything upstream never answered (marks included)`, "0 new answers"],
+        [`\`${v}\` leaves every list and tuple answer exactly as upstream`, "0 changed"],
+      ]),
+      ["isolation: `fork-setproduct` (no Equals change) still shows the Equals bug", "4620 object, 4620 map pairs inconsistent"],
+      ["isolation: `fork-bounds` (no Equals change) still shows the Equals bug", "4620 object, 4620 map pairs inconsistent"],
+      ["regression test fails on unfixed code, 20 of 20 runs (`TestValueEqualsUnknownAndDifference`)", "20 failed, 0 passed"],
+      ["regression test passes on the fix, 20 of 20 runs (`TestValueEqualsUnknownAndDifference`)", "20 passed, 0 failed"],
+      ["bug is real in OpenTofu (stock): the same plan flips", "objects (known after apply):15 false:15; count failed:23 succeeded:7"],
+      ["bug is real in OpenTofu (built-upstream-main): the same plan flips", "objects (known after apply):20 false:10; count failed:21 succeeded:9"],
+      ["fixed in OpenTofu built on the fork: every plan says false and succeeds", "objects false:30, maps false:30, count succeeded:30"],
+    ],
+    "SetProductFunc": [
+      ["bug is real: `upstream-v1.19.0` returns a wrong length", "6 calls returned a length that is not the product"],
+      ["bug is real: `upstream-v1.19.0` panics on an unrepresentable length", "4 calls"],
+      ["bug is real: `upstream-main` returns a wrong length", "6 calls returned a length that is not the product"],
+      ["bug is real: `upstream-main` panics on an unrepresentable length", "4 calls"],
+      ...["fork-setproduct", "fork-main"].flatMap(v => [
+        [`fixed: \`${v}\` never returns a wrong length`, "0 wrong"],
+        [`fixed: \`${v}\` returns the new error for every unrepresentable length`, "0 did not"],
+        [`\`${v}\` computes every representable product identically to upstream`, "0 of 25 results differ"],
+      ]),
+      ["isolation: `fork-equals` (no SetProduct change) still returns wrong lengths", "6 wrong"],
+      ["isolation: `fork-bounds` (no SetProduct change) still returns wrong lengths", "6 wrong"],
+      ...["upstream-v1.19.0", "fork-equals", "fork-setproduct", "fork-bounds", "fork-main"]
+        .map(v => [`\`${v}\` gives the same result as upstream for all 20,000 random calls`, "20000 of 20000 identical"]),
+      ...["upstream-v1.19.0", "fork-equals", "fork-setproduct", "fork-bounds", "fork-main"]
+        .map(v => [`\`${v}\` builds an identical 1,000,000-tuple result`, "sha256 5fcd3ea48168f967"]),
+      ["fixed: `fork-setproduct` allocates less than upstream for the same result", "288 MB vs 504 MB"],
+      ["regression test fails on unfixed code, 20 of 20 runs (`TestSetproductTooManyElements`)", "20 failed, 0 passed"],
+      ["regression test passes on the fix, 20 of 20 runs (`TestSetproductTooManyElements`)", "20 passed, 0 failed"],
+      ["bug is real in OpenTofu (stock): setproduct of 8×256 returns 0", "got 0"],
+      ["fixed in OpenTofu built on the fork: both overflowing products are refused, small one still 8", "8; result would have too many elements (×2)"],
+    ],
+    "Refinement bounds": [
+      ["bug is real: `upstream-v1.19.0` accepts empty ranges", "10 empty ranges accepted"],
+      ["`upstream-v1.19.0` is wrong only for equal bounds exclusive on both sides", "10 mismatches, all of that shape"],
+      ["bug is real: `upstream-main` accepts empty ranges", "10 empty ranges accepted"],
+      ["`upstream-main` is wrong only for equal bounds exclusive on both sides", "10 mismatches, all of that shape"],
+      ...["fork-bounds", "fork-main"].flatMap(v => [
+        [`fixed: \`${v}\` accepts exactly the non-empty ranges`, "0 mismatches"],
+        [`\`${v}\` builds every non-empty range identically to upstream`, "0 differ"],
+        [`\`${v}\` keeps upstream's panic message for every range both refuse`, "0 differ"],
+      ]),
+      ["isolation: `fork-equals` (no refinement change) still accepts empty ranges", "10"],
+      ["isolation: `fork-setproduct` (no refinement change) still accepts empty ranges", "10"],
+      ["bug has consequences: the accepted unknown number is unequal to every number probed, including 3", "6 probes"],
+      ["hand-encoded `3 < x < 3` payload equals upstream's own marshal output", "c7090c82039203c2049203c2"],
+      ["regression test fails on unfixed code, 20 of 20 runs (`TestValueRefine`)", "20 failed, 0 passed"],
+      ["regression test passes on the fix, 20 of 20 runs (`TestValueRefine`)", "20 passed, 0 failed"],
+    ],
+    "Upstream test suites": [
+      "fix/equals-unknown-and-difference", "fix/setproduct-length-overflow",
+      "fix/refinement-exclusive-equal-bounds", "main",
+    ].flatMap(b => [
+      [`all upstream tests pass on \`${b}\``, "9 passed, 0 failed, exit 0"],
+      [`\`go vet\` clean on \`${b}\``, "exit 0"],
+    ]),
+    "pyvider-cty": [
+      ["installed package is the commit GitHub had at run time", "GitHub 858fef516aa9, installed 858fef516aa9"],
+      ["Equals: judge's ground truth matches the Python harness's", "0 mismatches"],
+      ["Equals: one answer for every pair", "0 pairs with more than one answer"],
+      ["Equals: never an unsound answer", "0 unsound"],
+      ["Equals: object/map answers are the most precise possible", "0 less precise"],
+      ["Equals: same answer, and same mark on the answer, as `fork-main` for every pair (lists and tuples included)", "0 of 32796 differ"],
+      ["SetProduct: never returns a wrong length", "0 wrong"],
+      ["SetProduct: refuses every length an `int` cannot hold", "0 not refused"],
+      ["SetProduct: every product both compute has the same elements in the same order as `upstream-main`", "0 of 25 differ"],
+      ["SetProduct: builds the same 1,000,000-tuple product as `upstream-main`, element for element", "element sha256 c757c8dbcf24c0e7 vs c757c8dbcf24c0e7"],
+      ["refinement builder accepts exactly the non-empty ranges", "0 mismatches"],
+      ["refinement builder accepts and refuses exactly what `fork-bounds` does", "0 of 200 differ"],
+      ["msgpack decoder refuses every payload whose range holds no number, and decodes every one that does", "0 of 3 empty ranges kept, 0 non-empty refused"],
+    ],
+  };
+
+  // `code` spans in check/evidence text render as <code>, same as everywhere else on the page.
+  const withCode = s => s.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  const host = document.getElementById("checks");
+  let total = 0;
+  for (const [area, list] of Object.entries(checks)) {
+    total += list.length;
+    const block = document.createElement("div");
+    const headRow = document.createElement("div");
+    headRow.className = "area-head";
+    headRow.innerHTML = `<h3>${area}</h3><span class="count">${list.length}/${list.length}</span>`;
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+    const table = document.createElement("table");
+    table.className = "grid-table";
+    table.innerHTML = `<thead><tr><th>Check</th><th>Result</th><th>Evidence</th></tr></thead><tbody></tbody>`;
+    const tbody = table.querySelector("tbody");
+    for (const [name, evidence] of list) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="chk">${withCode(name)}</td><td class="result"><span class="emoji">✅</span><span class="pass-word">PASS</span></td><td class="ev">${withCode(evidence)}</td>`;
+      tbody.append(tr);
+    }
+    wrap.append(table);
+    block.append(headRow, wrap);
+    host.append(block);
+  }
+  host.previousElementSibling.textContent = `All ${total} checks`;
+</script>
+</body></html>
