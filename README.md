@@ -19,6 +19,13 @@ computed from the raw observations committed in [`results/`](results/), and
 | A number refinement accepts an empty range when both bounds are equal and exclusive, and panics when only one is | [#2](https://github.com/livingstaccato/go-cty/pull/2) | `781f24c6` |
 | `SetProductFunc`'s result length overflows, returning an empty result or panicking | [#3](https://github.com/livingstaccato/go-cty/pull/3) | `e7c9522b` |
 
+Each is also filed upstream, since pull requests are disabled on
+[`zclconf/go-cty`](https://github.com/zclconf/go-cty): issues
+[#226](https://github.com/zclconf/go-cty/issues/226),
+[#227](https://github.com/zclconf/go-cty/issues/227) and
+[#228](https://github.com/zclconf/go-cty/issues/228), each linking the merged
+fork PR and this repo.
+
 ## What is built and checked
 
 | Build | Source |
